@@ -10,22 +10,26 @@ app.use(cors());
 // --- 1. KONFIGURASI CLIENT WA (KHUSUS RAILWAY/DOCKER) ---
 const client = new Client({
     authStrategy: new LocalAuth({
-        // Pastikan Anda sudah membuat Volume di Railway dengan mount path ini
+        clientId: 'tekra_bot', // Tambahkan ID spesifik biar session rapi
         dataPath: '/railway/data' 
     }),
     puppeteer: { 
         headless: true,
-        // Path ini wajib jika Anda pakai Dockerfile yang saya berikan sebelumnya
-        executablePath: '/usr/bin/google-chrome-stable', 
+        executablePath: '/usr/bin/google-chrome-stable',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // Wajib untuk hemat memori
+            '--disable-dev-shm-usage', // PENTING: Cegah crash memori
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process', 
-            '--disable-gpu'
+            '--single-process', // PENTING: Hemat RAM
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-software-rasterizer',
+            '--mute-audio',
+            '--disable-gl-drawing-for-tests',
+            '--window-size=1280,1024'
         ]
     }
 });

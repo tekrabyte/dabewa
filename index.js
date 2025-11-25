@@ -3,44 +3,34 @@ const qrcode = require('qrcode-terminal');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const path = require('path');
-
-// --- HAPUS SESI LAMA AGAR TIDAK CRASH (RESET) ---
-// Hati-hati: Ini akan meminta scan QR ulang setiap restart.
-// Jika nanti sudah stabil, bagian ini bisa dihapus.
 const SESSION_DIR = '/railway/data/.wwebjs_auth';
 if (fs.existsSync(SESSION_DIR)) {
-    console.log('Menghapus sesi lama untuk mencegah crash...');
-    fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+    try {
+        fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+        console.log('Sesi lama dihapus untuk start bersih.');
+    } catch (e) {
+        console.error('Gagal hapus sesi:', e);
+    }
 }
-
-const app = express();
-app.use(express.json());
-app.use(cors());
 
 const client = new Client({
     restartOnAuthFail: true,
     authStrategy: new LocalAuth({
-        clientId: 'tekra_bot',
+        clientId: 'tekra_bot_v2', // Ganti ID biar fresh
         dataPath: '/railway/data'
     }),
     puppeteer: { 
         headless: true,
-        executablePath: '/usr/bin/google-chrome-stable',
+        // HAPUS BARIS executablePath !!! Biarkan kosong.
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // WAJIB: Pakai disk /tmp bukan RAM
+            '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
-            '--disable-gpu',
-            '--disable-extensions',
-            '--disable-software-rasterizer',
-            '--mute-audio',
-            '--disable-gl-drawing-for-tests',
-            '--window-size=1280,1024'
+            '--disable-gpu'
         ]
     }
 });

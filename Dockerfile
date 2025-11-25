@@ -53,4 +53,4 @@ RUN npm install
 
 COPY . .
 
-CMD [ "node", "dabewa.js" ]
+CMD [ "node", "index.js" ]

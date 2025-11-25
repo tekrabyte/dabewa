@@ -57,11 +57,19 @@ client.on('ready', () => {
     qrCodeData = null; // Reset QR code saat sudah terhubung
     isReady = true;
 });
-
-// Endpoint untuk WordPress mengambil status dan QR Code
 app.get('/status', (req, res) => {
+    let statusStr = 'INITIALIZING';
+
+    if (isReady) {
+        statusStr = 'CONNECTED';
+    } else if (qrCodeData) {
+        statusStr = 'QR_READY';
+    } else {
+        statusStr = 'DISCONNECTED';
+    }
+
     res.json({
-        ready: isReady,
+        status: statusStr, // Mengirim string yang diharapkan WordPress
         qr: qrCodeData
     });
 });

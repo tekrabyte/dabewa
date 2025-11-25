@@ -5,6 +5,10 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
+// --- DEFINISI VARIABEL LOGGING (WAJIB ADA) ---
+const historyLogs = []; 
+const MAX_LOGS = 50;    
+
 function addLog(type, message) {
     // Waktu WIB (Asia/Jakarta)
     const time = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -18,6 +22,7 @@ function addLog(type, message) {
     
     console.log(`[${type}] ${message}`);
 }
+
 // --- HAPUS SESI LAMA (PENTING AGAR TIDAK CRASH) ---
 const SESSION_DIR = '/railway/data/.wwebjs_auth';
 if (fs.existsSync(SESSION_DIR)) {
@@ -29,7 +34,7 @@ if (fs.existsSync(SESSION_DIR)) {
     }
 }
 
-// --- INISIALISASI APP EXPRESS (INI YANG HILANG SEBELUMNYA) ---
+// --- INISIALISASI APP EXPRESS ---
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -38,7 +43,7 @@ app.use(cors());
 const client = new Client({
     restartOnAuthFail: true,
     authStrategy: new LocalAuth({
-        clientId: 'tekra_bot_v3', // Ganti ID biar fresh
+        clientId: 'tekra_bot_v3', 
         dataPath: '/railway/data'
     }),
     puppeteer: { 
@@ -46,7 +51,7 @@ const client = new Client({
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // WAJIB
+            '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
@@ -55,21 +60,55 @@ const client = new Client({
         ]
     }
 });
+
 // Variabel global untuk menyimpan QR code terakhir
 let qrCodeData = null;
 let isReady = false;
 
+// --- EVENT LISTENERS ---
+
 client.on('qr', (qr) => {
     console.log('QR RECEIVED', qr);
-    qrCodeData = qr; // Simpan QR code saat event 'qr' muncul
+    qrCodeData = qr; 
     isReady = false;
+    addLog('SYSTEM', 'QR Code baru muncul. Silakan scan.');
 });
 
 client.on('ready', () => {
     console.log('Client is ready!');
-    qrCodeData = null; // Reset QR code saat sudah terhubung
+    qrCodeData = null; 
     isReady = true;
+    addLog('SYSTEM', 'WhatsApp Bot Siap & Terhubung!');
 });
+
+client.on('authenticated', () => {
+    addLog('SYSTEM', 'Sesi terautentikasi.');
+});
+
+client.on('disconnected', async (reason) => {
+    console.log('Bot Terputus:', reason);
+    addLog('SYSTEM', `Bot Terputus: ${reason}`);
+    
+    // Reset variabel status
+    isReady = false;
+    qrCodeData = null;
+
+    // Re-initialize client agar muncul QR Code baru
+    console.log('Menginisialisasi ulang client...');
+    
+    try {
+        await client.destroy();
+    } catch (e) { }
+    
+    client.initialize();
+});
+
+// --- API ENDPOINTS ---
+
+app.get('/', (req, res) => {
+    res.send('WhatsApp Bot Service Running...');
+});
+
 app.get('/status', (req, res) => {
     let statusStr = 'INITIALIZING';
 
@@ -82,51 +121,15 @@ app.get('/status', (req, res) => {
     }
 
     res.json({
-        status: statusStr, // Mengirim string yang diharapkan WordPress
+        status: statusStr,
         qr: qrCodeData
     });
 });
-// Endpoint Logs (BARU)
+
+// Endpoint Logs (DIPERBAIKI)
 app.get('/logs', (req, res) => {
-    res.json({ status: true, data: historyLogs });
-});
-// --- EVENT LISTENERS ---
-
-client.on('qr', (qr) => {
-    console.log('SCAN QR CODE DI BAWAH INI:');
-    qrcode.generate(qr, { small: true });
-});
-
-client.on('ready', () => {
-    console.log('WhatsApp Bot Siap! Device Connected.');
-});
-
-client.on('disconnected', async (reason) => {
-    console.log('Bot Terputus:', reason);
-    
-    // Reset variabel status
-    isReady = false;
-    qrCodeData = null;
-
-    // Hapus sesi lama jika ada (Opsional tapi disarankan di Railway)
-    const sessionPath = path.join(__dirname, '.wwebjs_auth'); 
-    // Catatan: path session sesuaikan dengan config authStrategy Anda (di script awal Anda pakai /railway/data)
-    
-    // Re-initialize client agar muncul QR Code baru
-    console.log('Menginisialisasi ulang client...');
-    
-    // Kita perlu destroy dulu untuk memastikan bersih sebelum init ulang
-    try {
-        await client.destroy();
-    } catch (e) { }
-    
-    client.initialize();
-});
-
-// --- API ENDPOINTS ---
-
-app.get('/', (req, res) => {
-    res.send('');
+    // Pastikan historyLogs ada (sudah didefinisikan di atas)
+    res.json({ status: true, data: historyLogs || [] });
 });
 
 app.post('/send-otp', async (req, res) => {
@@ -140,16 +143,18 @@ app.post('/send-otp', async (req, res) => {
 
     try {
         await client.sendMessage(chatId, message);
-        console.log(`Sukses kirim ke ${target}`);
+        addLog('OTP', `Sukses kirim ke ${target}`);
         res.json({ status: true, msg: 'Terkirim' });
     } catch (error) {
         console.error(error);
+        addLog('ERROR', `Gagal kirim ke ${target}: ${error.message}`);
         res.status(500).json({ status: false, msg: error.message });
     }
 });
+
 app.post('/logout', async (req, res) => {
     try {
-        // Periksa apakah client sedang berjalan sebelum logout
+        addLog('SYSTEM', 'Permintaan Logout diterima.');
         if (isReady || client.info) {
             await client.logout();
             res.json({ status: true, message: 'Berhasil logout. Silakan scan ulang.' });
@@ -158,7 +163,8 @@ app.post('/logout', async (req, res) => {
         }
     } catch (error) {
         console.error('Logout Error:', error);
-        // Jika gagal logout normal (misal sesi corrupt), paksa reset
+        addLog('ERROR', `Gagal Logout: ${error.message}`);
+        
         try {
             await client.destroy();
             await client.initialize();
@@ -168,10 +174,11 @@ app.post('/logout', async (req, res) => {
         }
     }
 });
+
 // --- JALANKAN SERVER ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server berjalan di port ${PORT}`);
-    console.log('Menyalakan WhatsApp Client...');
+    addLog('SYSTEM', 'Server dimulai...');
     client.initialize();
 });

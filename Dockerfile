@@ -1,6 +1,6 @@
 FROM node:18-slim
 
-# Install Chrome dependencies
+# 1. Install dependencies dasar & Google Chrome Stable
 RUN apt-get update \
     && apt-get install -y wget gnupg \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -10,16 +10,19 @@ RUN apt-get update \
       --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables
+# 2. Set Environment Variables
+# Lewati download chromium bawaan puppeteer (hemat waktu & kuota build)
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# Arahkan puppeteer ke chrome yang baru diinstall
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
 WORKDIR /usr/src/app
 
+# 3. Copy & Install Project
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 
-EXPOSE 3000
+# 4. Jalankan
 CMD [ "node", "index.js" ]

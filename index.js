@@ -42,7 +42,29 @@ const client = new Client({
         ]
     }
 });
+// Variabel global untuk menyimpan QR code terakhir
+let qrCodeData = null;
+let isReady = false;
 
+client.on('qr', (qr) => {
+    console.log('QR RECEIVED', qr);
+    qrCodeData = qr; // Simpan QR code saat event 'qr' muncul
+    isReady = false;
+});
+
+client.on('ready', () => {
+    console.log('Client is ready!');
+    qrCodeData = null; // Reset QR code saat sudah terhubung
+    isReady = true;
+});
+
+// Endpoint untuk WordPress mengambil status dan QR Code
+app.get('/status', (req, res) => {
+    res.json({
+        ready: isReady,
+        qr: qrCodeData
+    });
+});
 // --- EVENT LISTENERS ---
 
 client.on('qr', (qr) => {

@@ -10,14 +10,16 @@ app.use(cors());
 // Konfigurasi Client WA (Support Docker/Linux)
 const client = new Client({
     authStrategy: new LocalAuth({
-        dataPath: '/railway/data' // Simpan sesi di Volume Railway agar tidak logout saat restart
+        dataPath: '/railway/data' // Pastikan ini sesuai mount volume Railway Anda
     }),
     puppeteer: { 
         headless: true,
+        // PATH INI PENTING: Menggunakan Chrome yang diinstall via Dockerfile
+        executablePath: '/usr/bin/google-chrome-stable',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
+            '--disable-dev-shm-usage', // Wajib untuk mengatasi error memori di container
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',

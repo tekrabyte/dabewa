@@ -5,6 +5,19 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
+function addLog(type, message) {
+    // Waktu WIB (Asia/Jakarta)
+    const time = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+    const logEntry = { time, type, message };
+    
+    // Tambahkan ke awal array (terbaru di atas)
+    historyLogs.unshift(logEntry);
+    
+    // Hapus log lama jika melebihi batas
+    if (historyLogs.length > MAX_LOGS) historyLogs.pop();
+    
+    console.log(`[${type}] ${message}`);
+}
 // --- HAPUS SESI LAMA (PENTING AGAR TIDAK CRASH) ---
 const SESSION_DIR = '/railway/data/.wwebjs_auth';
 if (fs.existsSync(SESSION_DIR)) {
@@ -73,6 +86,10 @@ app.get('/status', (req, res) => {
         qr: qrCodeData
     });
 });
+// Endpoint Logs (BARU)
+app.get('/logs', (req, res) => {
+    res.json({ status: true, data: historyLogs });
+});
 // --- EVENT LISTENERS ---
 
 client.on('qr', (qr) => {
@@ -109,7 +126,7 @@ client.on('disconnected', async (reason) => {
 // --- API ENDPOINTS ---
 
 app.get('/', (req, res) => {
-    res.send('Server Bot WhatsApp Jalan!');
+    res.send('');
 });
 
 app.post('/send-otp', async (req, res) => {

@@ -3,29 +3,37 @@ const qrcode = require('qrcode-terminal');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+const path = require('path');
+
+// --- HAPUS SESI LAMA (PENTING AGAR TIDAK CRASH) ---
 const SESSION_DIR = '/railway/data/.wwebjs_auth';
 if (fs.existsSync(SESSION_DIR)) {
     try {
+        console.log('Menghapus sesi lama untuk start bersih...');
         fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-        console.log('Sesi lama dihapus untuk start bersih.');
     } catch (e) {
         console.error('Gagal hapus sesi:', e);
     }
 }
 
+// --- INISIALISASI APP EXPRESS (INI YANG HILANG SEBELUMNYA) ---
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// --- KONFIGURASI CLIENT WA (ANTI-CRASH) ---
 const client = new Client({
     restartOnAuthFail: true,
     authStrategy: new LocalAuth({
-        clientId: 'tekra_bot_v2', // Ganti ID biar fresh
+        clientId: 'tekra_bot_v3', // Ganti ID biar fresh
         dataPath: '/railway/data'
     }),
     puppeteer: { 
         headless: true,
-        // HAPUS BARIS executablePath !!! Biarkan kosong.
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
+            '--disable-dev-shm-usage', // WAJIB
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
@@ -34,6 +42,8 @@ const client = new Client({
         ]
     }
 });
+
+// --- EVENT LISTENERS ---
 
 client.on('qr', (qr) => {
     console.log('SCAN QR CODE DI BAWAH INI:');
@@ -48,7 +58,8 @@ client.on('disconnected', (reason) => {
     console.log('Bot Terputus:', reason);
 });
 
-// API Endpoints
+// --- API ENDPOINTS ---
+
 app.get('/', (req, res) => {
     res.send('Server Bot WhatsApp Jalan!');
 });
@@ -57,6 +68,7 @@ app.post('/send-otp', async (req, res) => {
     const { target, message } = req.body;
     if (!target || !message) return res.status(400).json({ status: false, msg: 'Data kurang' });
 
+    // Format nomor HP
     let number = target;
     if (number.startsWith('0')) number = '62' + number.slice(1);
     const chatId = number + '@c.us';
@@ -71,6 +83,7 @@ app.post('/send-otp', async (req, res) => {
     }
 });
 
+// --- JALANKAN SERVER ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server berjalan di port ${PORT}`);

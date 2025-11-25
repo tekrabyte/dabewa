@@ -84,8 +84,26 @@ client.on('ready', () => {
     console.log('WhatsApp Bot Siap! Device Connected.');
 });
 
-client.on('disconnected', (reason) => {
+client.on('disconnected', async (reason) => {
     console.log('Bot Terputus:', reason);
+    
+    // Reset variabel status
+    isReady = false;
+    qrCodeData = null;
+
+    // Hapus sesi lama jika ada (Opsional tapi disarankan di Railway)
+    const sessionPath = path.join(__dirname, '.wwebjs_auth'); 
+    // Catatan: path session sesuaikan dengan config authStrategy Anda (di script awal Anda pakai /railway/data)
+    
+    // Re-initialize client agar muncul QR Code baru
+    console.log('Menginisialisasi ulang client...');
+    
+    // Kita perlu destroy dulu untuk memastikan bersih sebelum init ulang
+    try {
+        await client.destroy();
+    } catch (e) { }
+    
+    client.initialize();
 });
 
 // --- API ENDPOINTS ---
@@ -112,7 +130,27 @@ app.post('/send-otp', async (req, res) => {
         res.status(500).json({ status: false, msg: error.message });
     }
 });
-
+app.post('/logout', async (req, res) => {
+    try {
+        // Periksa apakah client sedang berjalan sebelum logout
+        if (isReady || client.info) {
+            await client.logout();
+            res.json({ status: true, message: 'Berhasil logout. Silakan scan ulang.' });
+        } else {
+            res.json({ status: false, message: 'Bot belum terhubung, tidak perlu logout.' });
+        }
+    } catch (error) {
+        console.error('Logout Error:', error);
+        // Jika gagal logout normal (misal sesi corrupt), paksa reset
+        try {
+            await client.destroy();
+            await client.initialize();
+            res.json({ status: true, message: 'Sesi dipaksa reset.' });
+        } catch (e) {
+            res.status(500).json({ status: false, message: 'Gagal logout: ' + error.message });
+        }
+    }
+});
 // --- JALANKAN SERVER ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {

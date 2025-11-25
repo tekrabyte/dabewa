@@ -1,7 +1,6 @@
 FROM node:18-slim
 
 # 1. Install Google Chrome Stable & Dependencies
-# Kita install font juga agar QR code tidak kotak-kotak aneh di log
 RUN apt-get update \
     && apt-get install -y wget gnupg \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -24,5 +23,5 @@ RUN npm install
 # 4. Copy Source
 COPY . .
 
-# 5. Start
-CMD [ "node", "dabewa.js" ]
+# 5. Start (Jalankan index.js)
+CMD [ "node", "index.js" ]

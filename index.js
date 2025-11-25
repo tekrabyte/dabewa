@@ -106,7 +106,7 @@ client.on('disconnected', async (reason) => {
 // --- API ENDPOINTS ---
 
 app.get('/', (req, res) => {
-    res.send('WhatsApp Bot Service Running...');
+    res.send('');
 });
 
 app.get('/status', (req, res) => {
@@ -115,7 +115,7 @@ app.get('/status', (req, res) => {
     if (isReady) {
         statusStr = 'CONNECTED';
     } else if (qrCodeData) {
-        statusStr = 'QR_READY';
+        statusStr = 'READY';
     } else {
         statusStr = 'DISCONNECTED';
     }

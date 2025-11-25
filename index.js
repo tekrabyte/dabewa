@@ -7,35 +7,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// --- KONFIGURASI KHUSUS UNTUK MENGATASI CRASH DI RAILWAY ---
+// --- KONFIGURASI ANTI-CRASH KHUSUS RAILWAY ---
 const client = new Client({
     restartOnAuthFail: true,
     authStrategy: new LocalAuth({
         clientId: 'client-one',
-        dataPath: '/railway/data' 
+        dataPath: '/railway/data' // Pastikan Volume sudah di-add di Railway
     }),
     puppeteer: { 
         headless: true,
-        executablePath: '/usr/bin/google-chrome-stable', // Sesuai Dockerfile
+        // Path ini sesuai dengan instalasi Chrome di Dockerfile
+        executablePath: '/usr/bin/google-chrome-stable', 
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // PENTING: Pakai /tmp bukan /dev/shm
+            '--disable-dev-shm-usage', // PENTING: Menggunakan /tmp bukan /dev/shm
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
             '--single-process', // PENTING: Hemat RAM
-            '--disable-gpu',
-            '--disable-extensions',
-            '--disable-component-extensions-with-background-pages',
-            '--disable-default-apps',
-            '--mute-audio',
-            '--no-default-browser-check',
-            '--autoplay-policy=user-gesture-required',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-notifications',
-            '--disable-popup-blocking'
+            '--disable-gpu'
         ]
     }
 });
@@ -77,6 +68,7 @@ app.post('/send-otp', async (req, res) => {
     }
 });
 
+// Jalankan Server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server berjalan di port ${PORT}`);
